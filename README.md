@@ -9,7 +9,6 @@ Numbers are calibrated to ERCOT's recorded peaks and to Winter Storm Uri; source
 **Live site:** https://YOUR-USERNAME.github.io/YOUR-REPO-NAME/
 
 ## Group members
-- Name 1
-- Name 2
-- Name 3
-- Name 4
+- Dylan Saculla
+- Cage Hill
+- Kingston Borsani
