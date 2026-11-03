@@ -6,7 +6,7 @@ Four sliders control the outdoor temperature (hazard), how well plants and gas s
 
 Numbers are calibrated to ERCOT's recorded peaks and to Winter Storm Uri; sources are listed on the page.
 
-**Live site:** https://YOUR-USERNAME.github.io/YOUR-REPO-NAME/
+**Live site:** https://dylan-sac-saculla.github.io/Texas-Grid-Risk/
 
 ## Group members
 - Dylan Saculla
