@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Texas Grid Squeeze</title>
+<meta name="description" content="Explore how heat waves and freezes push Texas electricity demand up while cold knocks power plants offline.">
+<style>
+  :root {
+    --bg: #f7f5f0; --card: #ffffff; --ink: #1d232b; --muted: #5b6573; --line: #dcd8cf;
+    --demand: #c2410c; --supply: #1d4ed8; --short: rgba(220, 38, 38, 0.28);
+    --ok: #15803d; --bad: #b91c1c; --accent: #0f766e;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12161c; --card: #1b2129; --ink: #e8eaed; --muted: #9aa4b1; --line: #2f3742;
+      --demand: #fb923c; --supply: #60a5fa; --short: rgba(248, 113, 113, 0.30);
+      --ok: #4ade80; --bad: #f87171; --accent: #2dd4bf;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+    font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 1040px; margin: 0 auto; padding: 32px 16px 64px; }
+  h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); line-height: 1.15; margin: 0 0 8px; }
+  h2 { font-size: 1.3rem; margin: 40px 0 10px; }
+  h3 { font-size: 1.05rem; margin: 0 0 4px; }
+  p { margin: 0 0 12px; }
+  .lede { color: var(--muted); font-size: 1.08rem; max-width: 760px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 20px; }
+  .grid { display: grid; grid-template-columns: 340px 1fr; gap: 20px; margin-top: 24px; }
+  @media (max-width: 860px) { .grid { grid-template-columns: 1fr; } }
+  .slider { margin-bottom: 22px; }
+  .slider label { display: flex; justify-content: space-between; gap: 8px; font-weight: 600; }
+  .slider output { font-variant-numeric: tabular-nums; color: var(--accent); white-space: nowrap; }
+  .slider input { width: 100%; margin: 8px 0 2px; accent-color: var(--accent); }
+  .slider .hint { font-size: 0.86rem; color: var(--muted); }
+  .tag { display: inline-block; font-size: 0.7rem; font-weight: 700; letter-spacing: .04em;
+    text-transform: uppercase; padding: 1px 7px; border-radius: 99px; border: 1px solid var(--line);
+    color: var(--muted); margin-left: 6px; vertical-align: 2px; }
+  .presets { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+  .presets button { font: inherit; font-size: 0.86rem; padding: 6px 10px; border-radius: 8px;
+    border: 1px solid var(--line); background: var(--bg); color: var(--ink); cursor: pointer; }
+  .presets button:hover { border-color: var(--accent); }
+  .status { padding: 12px 14px; border-radius: 10px; font-weight: 600; margin-bottom: 14px; }
+  .status.ok { background: color-mix(in srgb, var(--ok) 14%, transparent); color: var(--ok); }
+  .status.warn { background: color-mix(in srgb, #ca8a04 16%, transparent); color: #a16207; }
+  .status.bad { background: color-mix(in srgb, var(--bad) 14%, transparent); color: var(--bad); }
+  .chartbox { position: relative; height: 380px; }
+  @media (max-width: 600px) { .chartbox { height: 300px; } }
+  table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; margin-top: 14px; font-size: 0.95rem; }
+  caption { text-align: left; font-weight: 700; padding-bottom: 6px; }
+  th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--line); }
+  td.num, th.num { text-align: right; }
+  .explain { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+  ul { padding-left: 20px; margin: 0 0 12px; }
+  li { margin-bottom: 6px; }
+  .small { font-size: 0.88rem; color: var(--muted); }
+  a { color: var(--accent); }
+  footer { margin-top: 48px; font-size: 0.85rem; color: var(--muted); }
+</style>
+</head>
+<body>
+<main>
+  <h1>The Texas Grid Squeeze: when the weather pushes demand up and supply down at once</h1>
+  <p class="lede">You run electricity planning for the Texas grid (ERCOT). On the hottest afternoons, air conditioning drives record demand. On the coldest mornings, electric heating drives demand up too, but the same cold can freeze gas wells, pipelines, and power plants. Your job is to keep supply above demand on both kinds of days. Move the sliders to see when the lights stay on, and when they don't.</p>
+
+  <div class="grid">
+    <!-- Controls -->
+    <section class="card" aria-label="Controls">
+      <h3>Try a real event</h3>
+      <div class="presets">
+        <button data-preset="uri">Winter Storm Uri (Feb 2021)</button>
+        <button data-preset="heather">Cold snap (Jan 2024)</button>
+        <button data-preset="heat">Record heat (Aug 2023)</button>
+        <button data-preset="uriAgain">Uri hits today's grid</button>
+      </div>
+
+      <div class="slider">
+        <label for="temp">Outdoor temperature <span><output id="tempOut"></output></span></label>
+        <input id="temp" type="range" min="0" max="110" step="1" value="101">
+        <div class="hint"><span class="tag">Hazard</span> Population-weighted Texas temperature at the hour of peak demand.</div>
+      </div>
+
+      <div class="slider">
+        <label for="wint">Winterization of plants &amp; gas supply <span><output id="wintOut"></output></span></label>
+        <input id="wint" type="range" min="0" max="100" step="5" value="75">
+        <div class="hint"><span class="tag">Vulnerability</span> How much of the cold-weather failure risk has been fixed (insulation, heat tracing, protected gas wells). 0% ≈ Feb 2021.</div>
+      </div>
+
+      <div class="slider">
+        <label for="growth">Demand growth vs. today <span><output id="growthOut"></output></span></label>
+        <input id="growth" type="range" min="-10" max="40" step="1" value="0">
+        <div class="hint"><span class="tag">Exposure</span> More people, data centers, industry, and electric heating. Negative = an earlier, smaller Texas.</div>
+      </div>
+
+      <div class="slider">
+        <label for="add">New firm capacity &amp; batteries <span><output id="addOut"></output></span></label>
+        <input id="add" type="range" min="-10" max="20" step="1" value="0">
+        <div class="hint"><span class="tag">Adaptation</span> Gigawatts added (or retired) that can deliver power at the peak hour, day or night.</div>
+      </div>
+    </section>
+
+    <!-- Results -->
+    <section class="card" aria-label="Results">
+      <div id="status" class="status ok" role="status"></div>
+      <div class="chartbox"><canvas id="chart" aria-label="Line chart of electricity demand and available supply versus temperature"></canvas></div>
+      <table>
+        <caption>Grid conditions at the selected temperature</caption>
+        <thead><tr><th>Quantity</th><th class="num">Value</th></tr></thead>
+        <tbody>
+          <tr><td>Peak-hour demand</td><td class="num" id="tDemand"></td></tr>
+          <tr><td>Available supply</td><td class="num" id="tSupply"></td></tr>
+          <tr><td>&nbsp;&nbsp;of which: plants &amp; gas supply knocked out by cold</td><td class="num" id="tCold"></td></tr>
+          <tr><td>&nbsp;&nbsp;of which: solar at the peak hour</td><td class="num" id="tSolar"></td></tr>
+          <tr><td>Operating margin (supply − demand)</td><td class="num" id="tMargin"></td></tr>
+          <tr><td>Homes that would lose power (≈200 homes per MW)</td><td class="num" id="tHomes"></td></tr>
+        </tbody>
+      </table>
+    </section>
+  </div>
+
+  <h2>What's the problem?</h2>
+  <p>Electricity has to be generated the instant it's used, so the grid must always have at least as much <strong>supply</strong> as <strong>demand</strong>. If demand exceeds supply, the grid operator orders rolling blackouts ("load shed") to keep the whole system from collapsing.</p>
+  <p>Texas demand is <strong>U-shaped</strong> with temperature: it's lowest on mild days near 65 °F and climbs on both hot and cold days. Supply behaves differently. Heat shaves off a little capacity, but hard freezes can knock out a <em>large</em> share of it, because gas wells, pipelines, valves, and plant instruments freeze. That's a <strong>correlated shock</strong>: the same weather that pushes demand up also pushes supply down. In February 2021, Winter Storm Uri knocked out about 52 GW of generation, almost half the grid, right as demand was heading toward a winter record. The result was 20 GW of rolling blackouts, lasting days for some people.</p>
+
+  <h2>What to notice as you move the sliders</h2>
+  <div class="explain">
+    <div class="card">
+      <h3>Winterization only matters when it's cold</h3>
+      <p>Set the temperature to 100 °F and drag winterization from 0% to 100%: nothing changes. Now set it to 10 °F and try again. The blue supply curve's "cliff" on the left gets shallower. The value of the investment depends entirely on the hazard. This is the hazard × vulnerability interaction.</p>
+    </div>
+    <div class="card">
+      <h3>Cold is worse than heat, even at similar demand</h3>
+      <p>A 100 °F afternoon and a 15 °F morning produce similar demand. But on the hot afternoon, solar is producing and plants are running; on the frozen morning, it's dark and plants are failing. The red shaded gap shows up first on the cold side.</p>
+    </div>
+    <div class="card">
+      <h3>Growth squeezes both ends</h3>
+      <p>Raise demand growth to 20% and watch the red gap open on both the hot and cold sides. Then use new capacity to close it. Notice how much capacity a heat wave needs compared with a freeze when winterization is low.</p>
+    </div>
+  </div>
+
+  <h2>Where the numbers come from</h2>
+  <p>This is a simplified teaching model, not ERCOT's operational model. Its parameters are set so that it reproduces real recorded events:</p>
+  <ul>
+    <li><strong>Summer peak:</strong> ERCOT's official all-time demand record is 85,508 MW on Aug. 10, 2023. The model gives ~85.6 GW at 101 °F. (<a href="https://www.ercot.com/static-assets/data/news/Content/a-peak-demand/all-time-records.htm">ERCOT peak demand records</a>; an unofficial grid-tracker reading of ~85.9 GW followed in Aug. 2024, <a href="https://www.click2houston.com/news/local/2024/08/21/ercot-breaks-all-time-demand-record-tuesday">KPRC</a>.)</li>
+    <li><strong>Winter peak:</strong> 78,314 MW on Jan. 16, 2024, in the 7–8 a.m. hour, with no emergency operations. The model gives ~77.6 GW at 18 °F with supply still ahead of demand. (<a href="https://www.ercot.com/files/docs/2024/02/29/ERCOT-Monthly-February-2024.pdf">ERCOT Monthly, Feb 2024</a>)</li>
+    <li><strong>Winter Storm Uri:</strong> ~52 GW (48.6%) of generation forced offline at the worst point, 20 GW peak load shed, and an estimated 76.8 GW demand without load shed. Most of the loss was gas-fired plants, many short of fuel. The model gives ~77 GW demand and ~56 GW supply at 6 °F with 0% winterization, a ~21 GW shortfall, close to the 20 GW actually shed. (The model starts from a smaller usable baseline than total installed capacity, so it needs fewer GW of outages to get there.) (<a href="https://www.spglobal.com/commodity-insights/en/news-research/latest-news/electric-power/022421-ercot-lost-almost-half-of-generation-capacity-in-storm-causing-20-gw-load-shed">S&amp;P Global</a>; <a href="https://www.powermag.com/ercot-lists-generators-forced-offline-during-texas-extreme-cold-event">POWER Magazine</a>)</li>
+    <li><strong>Solar at the peak hour:</strong> winter peaks happen in the dark early morning, so solar contributes almost nothing then; summer peaks are late afternoon. (<a href="https://www.ercot.com/news/release/2024-01-15-ercot-expects-tight">ERCOT news release, Jan 15, 2024</a>)</li>
+    <li><strong>Homes per MW:</strong> ERCOT's rule of thumb is that 1 MW serves about 200 homes at peak. Treat the household number as a rough order of magnitude. (<a href="https://www.cbsnews.com/texas/news/ercot-peak-demand-sets-new-record-wednesday">ERCOT via CBS DFW</a>)</li>
+  </ul>
+  <p class="small"><strong>Model assumptions:</strong> demand = 55 GW at 65 °F, rising 0.85 GW per °F above that and 0.48 GW per °F below it, scaled by the growth slider. Supply = 78 GW of firm capacity + 7 GW of wind + up to 16 GW of solar (fading on colder days, since those peaks happen before sunrise) + new capacity, minus heat derating above 90 °F, minus cold-weather outages that start below 35 °F and reach 21 GW at 6 °F when nothing is winterized. Winterization removes up to 90% of the cold outages. Real grids also depend on wind conditions, transmission limits, plant maintenance, and how long the event lasts, none of which are modeled here.</p>
+
+  <footer>
+    Built for a Texas A&amp;M climate risk assignment. Chart drawn with <a href="https://www.chartjs.org/">Chart.js</a>.
+  </footer>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+// ---------- Model parameters (see "Model assumptions" on the page) ----------
+const P = {
+  base: 55, mildT: 65, sumSlope: 0.85, winSlope: 0.48,   // demand, GW and GW/°F
+  firm: 78, wind: 7, solarPeak: 16,                       // supply, GW
+  heatDerate: 0.15, heatOut: 0.30,                        // GW lost per °F above 90 / 100 °F
+  outMax: 21, onset: 35, uriT: 6, winterEff: 0.9          // cold outages
+};
+const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
+
+function demand(T, growth) {
+  const d = P.base + (T > P.mildT ? P.sumSlope * (T - P.mildT) : P.winSlope * (P.mildT - T));
+  return d * (1 + growth / 100);
+}
+function solar(T) {               // peak-hour solar: ~0 on cold (pre-dawn) peaks, full on hot afternoons
+  const s = clamp((T - 45) / 40, 0, 1);
+  return s * s * (3 - 2 * s) * P.solarPeak;
+}
+function coldOutage(T, wint) {
+  if (T >= P.onset) return 0;
+  const raw = P.outMax * Math.pow((P.onset - T) / (P.onset - P.uriT), 1.3);
+  return raw * (1 - P.winterEff * wint / 100);
+}
+function heatLoss(T) {
+  return Math.max(0, T - 90) * P.heatDerate + Math.max(0, T - 100) * P.heatOut;
+}
+function supply(T, wint, add) {
+  return P.firm + add + P.wind + solar(T) - coldOutage(T, wint) - heatLoss(T);
+}
+
+// ---------- UI ----------
+const $ = id => document.getElementById(id);
+const els = { temp: $("temp"), wint: $("wint"), growth: $("growth"), add: $("add") };
+const presets = {
+  uri:      { temp: 6,   wint: 0,  growth: -8, add: -8 },
+  heather:  { temp: 18,  wint: 75, growth: 0,  add: 0 },
+  heat:     { temp: 101, wint: 75, growth: 0,  add: -5 },
+  uriAgain: { temp: 6,   wint: 75, growth: 0,  add: 0 }
+};
+const css = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+const fmtGW = x => (x >= 0 ? "" : "−") + Math.abs(x).toFixed(1) + " GW";
+
+const temps = Array.from({ length: 111 }, (_, i) => i);
+let chart;
+
+function buildChart() {
+  const ctx = $("chart");
+  chart = new Chart(ctx, {
+    type: "line",
+    data: { datasets: [
+      { label: "Demand (GW)", data: [], borderColor: css("--demand"), borderWidth: 2.5, pointRadius: 0,
+        fill: { target: 1, above: css("--short"), below: "rgba(0,0,0,0)" } },
+      { label: "Available supply (GW)", data: [], borderColor: css("--supply"), borderWidth: 2.5, pointRadius: 0, fill: false },
+      { label: "Selected temperature", data: [], borderColor: css("--muted"), borderDash: [5, 4], borderWidth: 1.5,
+        pointRadius: 0, fill: false }
+    ]},
+    options: {
+      responsive: true, maintainAspectRatio: false, animation: false, parsing: false,
+      interaction: { mode: "nearest", axis: "x", intersect: false },
+      plugins: {
+        title: { display: true, text: "Peak-hour demand vs. available supply across temperatures", color: css("--ink"), font: { size: 14 } },
+        legend: { labels: { color: css("--ink"), boxWidth: 14,
+          filter: item => item.datasetIndex < 2 } },
+        tooltip: { filter: item => item.datasetIndex < 2,
+          callbacks: { title: items => items[0].parsed.x + " °F",
+                       label: item => `${item.dataset.label.replace(" (GW)", "")}: ${item.parsed.y.toFixed(1)} GW` } }
+      },
+      scales: {
+        x: { type: "linear", min: 0, max: 110, title: { display: true, text: "Population-weighted Texas temperature (°F)", color: css("--ink") },
+             ticks: { color: css("--muted"), stepSize: 10 }, grid: { color: css("--line") } },
+        y: { min: 30, max: 125, title: { display: true, text: "Power (gigawatts, GW)", color: css("--ink") },
+             ticks: { color: css("--muted") }, grid: { color: css("--line") } }
+      }
+    }
+  });
+}
+
+function update() {
+  const T = +els.temp.value, w = +els.wint.value, g = +els.growth.value, a = +els.add.value;
+  $("tempOut").textContent = `${T} °F (${((T - 32) * 5 / 9).toFixed(0)} °C)`;
+  $("wintOut").textContent = `${w}%`;
+  $("growthOut").textContent = `${g > 0 ? "+" : ""}${g}%`;
+  $("addOut").textContent = `${a > 0 ? "+" : ""}${a} GW`;
+
+  chart.data.datasets[0].data = temps.map(t => ({ x: t, y: demand(t, g) }));
+  chart.data.datasets[1].data = temps.map(t => ({ x: t, y: supply(t, w, a) }));
+  chart.data.datasets[2].data = [{ x: T, y: 30 }, { x: T, y: 125 }];
+  chart.update();
+
+  const D = demand(T, g), S = supply(T, w, a), M = S - D;
+  $("tDemand").textContent = fmtGW(D);
+  $("tSupply").textContent = fmtGW(S);
+  $("tCold").textContent = fmtGW(coldOutage(T, w));
+  $("tSolar").textContent = fmtGW(solar(T));
+  $("tMargin").textContent = fmtGW(M);
+  $("tMargin").style.color = M < 0 ? css("--bad") : M < 6 ? "#ca8a04" : css("--ok");
+  const homes = Math.max(0, -M) * 1000 * 200;
+  $("tHomes").textContent = homes > 0 ? (homes / 1e6).toFixed(1) + " million" : "0";
+
+  const st = $("status");
+  if (M < 0) {
+    st.className = "status bad";
+    st.textContent = `Rolling blackouts: demand exceeds supply by ${(-M).toFixed(1)} GW, roughly ${(homes / 1e6).toFixed(1)} million homes.`;
+  } else if (M < 6) {
+    st.className = "status warn";
+    st.textContent = `Tight: only ${M.toFixed(1)} GW of margin. Expect conservation appeals and emergency alerts.`;
+  } else {
+    st.className = "status ok";
+    st.textContent = `Lights on: ${M.toFixed(1)} GW of spare supply at this temperature.`;
+  }
+}
+
+Object.values(els).forEach(el => el.addEventListener("input", update));
+document.querySelectorAll("[data-preset]").forEach(btn =>
+  btn.addEventListener("click", () => {
+    const p = presets[btn.dataset.preset];
+    Object.keys(p).forEach(k => els[k].value = p[k]);
+    update();
+  }));
+
+buildChart();
+update();
+</script>
+</body>
+</html>
